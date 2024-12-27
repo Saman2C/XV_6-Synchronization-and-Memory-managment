@@ -533,12 +533,15 @@ procdump(void)
   }
 }
 
+extern uint totalSysCallCount; 
 int sysCallCounter(void) 
 {
   int totalSysCall = 0;
   for(int i = 0; i<4;i++) 
   {
+    cprintf("The cpu %d has %d syscall.\n", i, cpus[i].sysCallCounter);
     totalSysCall += cpus[i].sysCallCounter;
   }
+  cprintf("Variable in trap totalSycallCount: %d\n", totalSysCallCount);
   return totalSysCall;
 }

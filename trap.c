@@ -14,6 +14,7 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 uint totalSysCallCount = 0;
+struct spinlock sycallCounterLock;
 
 void
 tvinit(void)
@@ -25,6 +26,7 @@ tvinit(void)
   SETGATE(idt[T_SYSCALL], 1, SEG_KCODE<<3, vectors[T_SYSCALL], DPL_USER);
 
   initlock(&tickslock, "time");
+  initlock(&sycallCounterLock, "syscallCounter");
 }
 
 void
@@ -43,6 +45,7 @@ trap(struct trapframe *tf)
       exit();
     myproc()->tf = tf;
     syscall();
+    acquire(&sycallCounterLock);
     switch (tf->eax)
     {
     case 15:
@@ -60,6 +63,7 @@ trap(struct trapframe *tf)
       mycpu()->sysCallCounter += 1;
       break;
     }
+    release(&sycallCounterLock);
     if(myproc()->killed)
       exit();
     return;

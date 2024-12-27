@@ -7,24 +7,24 @@
 void write_to_file(char *filename, char *data) {
     int fd = open(filename, O_CREATE | O_RDWR);
     if (fd < 0) {
-        printf("Failed to open or create file %s\n", filename);
+        printf(2, "Failed to open or create file %s\n", filename);
         exit();
     }
 
     if (write(fd, data, strlen(data)) != strlen(data)) {
-        printf("Failed to write to file %s\n", filename);
+        printf(2, "Failed to write to file %s\n", filename);
         close(fd);
         exit();
     }
 
-    printf("Successfully wrote to %s\n", filename);
+    printf(1, "Successfully wrote to %s\n", filename);
     close(fd);
 }
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
 
-        printf(1, "Usage: filewriter filename data\n");
+        printf(2, "Usage: mmd filename data\n");
         exit();
     }
 
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
         wait();
     }
 
-    total_syscall =sysCallCounter();
-    printf(1, total_syscall);
+    total_syscall = sysCallCounter();
+    printf(1, "%d\n", total_syscall);
     exit();
 }
