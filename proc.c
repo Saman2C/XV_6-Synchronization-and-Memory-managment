@@ -532,3 +532,13 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int sysCallCounter(void) 
+{
+  int totalSysCall = 0;
+  for(int i = 0; i<4;i++) 
+  {
+    totalSysCall += cpus[i].sysCallCounter;
+  }
+  return totalSysCall;
+}
