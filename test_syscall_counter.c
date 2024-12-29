@@ -17,14 +17,13 @@ void write_to_file(char *filename, char *data) {
         exit();
     }
 
-    printf(1, "Successfully wrote to %s\n", filename);
+    printf(1, "Child %d successfully wrote to %s\n", getpid(), filename);
     close(fd);
 }
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-
-        printf(2, "Usage: mmd filename data\n");
+        printf(2, "Usage: program_name filename data\n");
         exit();
     }
 
@@ -32,23 +31,27 @@ int main(int argc, char *argv[]) {
     char *data = argv[2];
     int total_syscall = 0;
 
-    int pid = fork();
-    if (pid < 0) {
-        printf(1, "Fork failed\n");
-        exit();
+    for (int i = 0; i < 5; i++) {
+        int pid = fork();
+        if (pid < 0) {
+            printf(1, "Fork failed\n");
+            exit();
+        }
+
+        if (pid == 0) {
+            // Child process writes to the file
+            write_to_file(filename, data);
+            exit();
+        }
+        // Parent continues to fork more children
     }
 
-    if (pid == 0) {
-        // Child process writes to the file
-        write_to_file(filename, data);
-
-        exit();
-    } else {
-        // Parent waits for the child
+    // Parent waits for all children
+    for (int i = 0; i < 5; i++) {
         wait();
     }
 
-    total_syscall = sysCallCounter();
-    printf(1, "Sumation of total cpus: %d\n", total_syscall);
+    total_syscall = sysCallCounter(); // Assuming sysCallCounter is implemented
+    printf(1, "Total system calls used: %d\n", total_syscall);
     exit();
 }
