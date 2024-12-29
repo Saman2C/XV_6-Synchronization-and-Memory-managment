@@ -49,6 +49,6 @@ int main(int argc, char *argv[]) {
     }
 
     total_syscall = sysCallCounter();
-    printf(1, "%d\n", total_syscall);
+    printf(1, "Sumation of total cpus: %d\n", total_syscall);
     exit();
 }
