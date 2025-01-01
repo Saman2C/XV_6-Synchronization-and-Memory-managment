@@ -182,6 +182,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_test_syscall_counter\
+	_test_reentrantlock\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

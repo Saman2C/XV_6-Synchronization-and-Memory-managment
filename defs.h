@@ -134,6 +134,11 @@ void            release(struct spinlock*);
 void            pushcli(void);
 void            popcli(void);
 
+// reentrantlock.c
+void            initreentrantlock(struct reentrantlock*, char*);
+void            acquirereentrantlock(struct reentrantlock*);
+void            releasereentrantlock(struct reentrantlock*);
+
 // sleeplock.c
 void            acquiresleep(struct sleeplock*);
 void            releasesleep(struct sleeplock*);

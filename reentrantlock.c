@@ -5,14 +5,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-#include "spinlock.h"
-
-
-struct reentrantlock {
-    struct spinlock lock;
-    struct proc *owner;
-    int recursion;
-};
+#include "reentrantlock.h"
 
 void
 initreentrantlock(struct reentrantlock *rlock, char *name)
