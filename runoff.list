@@ -17,6 +17,8 @@ main.c
 # locks
 spinlock.h
 spinlock.c
+reentrantlock.c
+reentrantlock.h
 
 # processes
 vm.c

@@ -10,9 +10,7 @@
 void
 initreentrantlock(struct reentrantlock *rlock, char *name)
 {
-    struct spinlock lk;
-    initlock(&lk, name);
-    rlock->lock = lk;
+    initlock(&(rlock->lock), name);
     rlock->owner = 0;
     rlock->recursion = 0;
 }
@@ -20,25 +18,23 @@ initreentrantlock(struct reentrantlock *rlock, char *name)
 void
 acquirereentrantlock(struct reentrantlock *rlock)
 {
-    struct spinlock *lk = &(rlock->lock);
-    acquire(lk);
+    acquire(&(rlock->lock));
     if (rlock->owner == myproc())
         rlock->recursion ++;
     else
     {
         while (rlock->owner != 0)
-            sleep(rlock, lk);
+            sleep(rlock, &(rlock->lock));
         rlock->owner = myproc();
         rlock->recursion = 1;
     }
-    release(lk);
+    release(&(rlock->lock));
 }
 
 void
 releasereentrantlock(struct reentrantlock *rlock)
 {
-    struct spinlock *lk = &(rlock->lock);
-    acquire(lk);
+    acquire(&(rlock->lock));
     if (rlock->owner != myproc())
         return;
     rlock->recursion --;
@@ -47,6 +43,6 @@ releasereentrantlock(struct reentrantlock *rlock)
         rlock->owner = 0;
         wakeup(rlock);
     }
-    release(lk);
+    release(&(rlock->lock));
 }
 

@@ -545,3 +545,23 @@ int sysCallCounter(void)
   cprintf("Variable in trap totalSycallCount: %d\n", totalSysCallCount);
   return totalSysCall;
 }
+
+void _f(int n, struct reentrantlock* lk)
+{
+  cprintf("proc: %d, f(%d)\n", myproc()->pid ,n);
+  acquirereentrantlock(lk); 
+  n --;
+  if (n)
+    _f(n, lk);
+  releasereentrantlock(lk);
+  return;
+}
+
+int 
+test_lock(void)
+{
+  struct reentrantlock *lk = 0;
+  initreentrantlock(lk, "lock");
+  _f(10, 0);
+  return 0;
+}

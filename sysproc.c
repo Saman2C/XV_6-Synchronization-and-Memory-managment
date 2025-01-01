@@ -95,3 +95,9 @@ sys_sysCallCounter(void)
 {
   return sysCallCounter();
 }
+
+int
+sys_test_lock(void)
+{
+  return test_lock();
+}

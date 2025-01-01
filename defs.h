@@ -9,6 +9,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct reentrantlock;
 
 // bio.c
 void            binit(void);
@@ -121,6 +122,7 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int             sysCallCounter(void);
+int             test_lock(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
