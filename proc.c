@@ -562,6 +562,6 @@ test_lock(void)
 {
   struct reentrantlock *lk = 0;
   initreentrantlock(lk, "lock");
-  _f(10, 0);
+  _f(10, lk);
   return 0;
 }

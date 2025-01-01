@@ -4,6 +4,5 @@
 
 int main(int argc, char *argv[]) {
     test_lock();
-    printf(1, "HERE\n");
     exit();
 }
