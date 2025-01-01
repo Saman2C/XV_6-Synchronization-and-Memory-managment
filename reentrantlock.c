@@ -18,7 +18,7 @@ initreentrantlock(struct reentrantlock *rlock, char *name)
 void
 acquirereentrantlock(struct reentrantlock *rlock)
 {
-    // acquire(&rlock->lock);
+    acquire(&rlock->lock);
     if (rlock->owner == myproc())
         rlock->recursion ++;
     else
@@ -28,13 +28,13 @@ acquirereentrantlock(struct reentrantlock *rlock)
         rlock->owner = myproc();
         rlock->recursion = 1;
     }
-    // release(&rlock->lock);
+    release(&rlock->lock);
 }
 
 void
 releasereentrantlock(struct reentrantlock *rlock)
 {
-    // acquire(&rlock->lock);
+    acquire(&rlock->lock);
     if (rlock->owner != myproc())
         panic("releasereentrantlock: not owner\n");
     if (rlock->recursion <= 0)
@@ -45,6 +45,6 @@ releasereentrantlock(struct reentrantlock *rlock)
         rlock->owner = 0;
         wakeup(rlock);
     }
-    // release(&rlock->lock);
+    release(&rlock->lock);
 }
 

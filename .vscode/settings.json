@@ -8,6 +8,7 @@
         "reentrantlock.h": "c",
         "mmu.h": "c",
         "types.h": "c",
-        "x86.h": "c"
+        "x86.h": "c",
+        "typeinfo": "c"
     }
 }

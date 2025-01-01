@@ -5,7 +5,7 @@
 #include "mmu.h"
 #include "x86.h"
 #include "proc.h"
-#include "spinlock.h"
+#include "reentrantlock.h"
 
 struct {
   struct spinlock lock;
@@ -560,8 +560,8 @@ void _f(int n, struct reentrantlock* lk)
 int 
 test_lock(void)
 {
-  struct reentrantlock *lk = 0;
-  initreentrantlock(lk, "lock");
-  _f(10, lk);
+  struct reentrantlock lk;
+  initreentrantlock(&lk, "lock");
+  _f(10, &lk);
   return 0;
 }
