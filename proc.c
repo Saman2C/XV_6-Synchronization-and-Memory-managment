@@ -19,6 +19,7 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+struct reentrantlock lk;
 
 void
 pinit(void)
@@ -122,6 +123,8 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
+
+  initreentrantlock(&lk, "lock");
 
   p = allocproc();
   
@@ -548,7 +551,7 @@ int sysCallCounter(void)
 
 void _f(int n, struct reentrantlock* lk)
 {
-  cprintf("proc: %d, f(%d)\n", myproc()->pid ,n);
+  cprintf("proc: %d, f(%d), lock: %d\n", myproc()->pid ,n, lk);
   acquirereentrantlock(lk); 
   n --;
   if (n)
@@ -560,8 +563,6 @@ void _f(int n, struct reentrantlock* lk)
 int 
 test_lock(void)
 {
-  struct reentrantlock lk;
-  initreentrantlock(&lk, "lock");
   _f(10, &lk);
   return 0;
 }
