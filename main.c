@@ -5,7 +5,9 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
+#include "spinlock.h"
 
+struct spinlock testlock;
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;
@@ -35,6 +37,8 @@ main(void)
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
   userinit();      // first user process
   shared_mem_init();
+  initlock(&testlock, "testlock");
+
   mpmain();        // finish this processor's setup
 }
 

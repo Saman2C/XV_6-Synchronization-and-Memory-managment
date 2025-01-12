@@ -6,6 +6,9 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "spinlock.h"
+
+struct spinlock testlock;
 
 int
 sys_fork(void)
@@ -121,4 +124,13 @@ sys_open_shared_mem(void)
     return (void*)0;
 
   return open_shared_mem(shared_mem_id);
+}
+int sys_acquire_lock(void) {
+    acquire(&testlock); // Replace `testlock` with the actual lock you are using
+    return 0;
+}
+
+int sys_release_lock(void) {
+    release(&testlock); // Replace `testlock` with the actual lock you are using
+    return 0;
 }

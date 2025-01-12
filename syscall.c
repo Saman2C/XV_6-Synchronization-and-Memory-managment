@@ -107,6 +107,9 @@ extern int sys_sysCallCounter(void);
 extern int sys_test_lock(void);
 extern int sys_close_shared_mem(void);
 extern int sys_open_shared_mem(void);
+extern int sys_acquire_lock(void);
+extern int sys_release_lock(void);
+
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -133,7 +136,9 @@ static int (*syscalls[])(void) = {
 [SYS_sysCallCounter] sys_sysCallCounter,
 [SYS_test_lock] sys_test_lock,
 [SYS_open_shared_mem]  sys_open_shared_mem,
-[SYS_close_shared_mem]  sys_close_shared_mem
+[SYS_close_shared_mem]  sys_close_shared_mem,
+[SYS_acquire_lock]  sys_acquire_lock,
+[SYS_release_lock]  sys_release_lock,
 };
 
 void

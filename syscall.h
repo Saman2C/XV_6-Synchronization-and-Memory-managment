@@ -24,3 +24,5 @@
 #define SYS_test_lock 23
 #define SYS_open_shared_mem 24
 #define SYS_close_shared_mem  25
+#define SYS_acquire_lock 26
+#define SYS_release_lock 27

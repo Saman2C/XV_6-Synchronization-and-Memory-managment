@@ -184,6 +184,7 @@ UPROGS=\
 	_zombie\
 	_test_syscall_counter\
 	_test_reentrantlock\
+	_test_shared_mem\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
