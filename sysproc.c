@@ -101,3 +101,24 @@ sys_test_lock(void)
 {
   return test_lock();
 }
+
+extern int close_shared_mem(void*);
+extern void * open_shared_mem(int);
+
+int sys_close_shared_mem(void)
+{
+  int i;
+  if(argint(0,&i)<0)
+    return 0;
+  return close_shared_mem((void*)i);
+}
+
+void*
+sys_open_shared_mem(void)
+{
+  int shared_mem_id;
+  if(argint(0, &shared_mem_id) < 0)
+    return (void*)0;
+
+  return open_shared_mem(shared_mem_id);
+}

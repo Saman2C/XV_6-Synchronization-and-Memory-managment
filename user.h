@@ -25,6 +25,8 @@ int sleep(int);
 int uptime(void);
 int sysCallCounter(void);
 int test_lock(void);
+int open_shared_mem(int);
+int close_shared_mem(void*);
 
 // ulib.c
 int stat(const char*, struct stat*);

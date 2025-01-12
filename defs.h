@@ -196,3 +196,10 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+// shared memory vm.c
+void shared_mem_init(void);
+int get_shared_mem_id_index(int);
+void map_pages_wrapper(struct proc *process, int, int);
+void close_shared_mem_wrapper(void *);
+

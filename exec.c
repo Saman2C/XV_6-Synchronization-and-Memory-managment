@@ -93,6 +93,14 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
+
+  //  Detach shared region segments
+  for(int i = 0; i < NUMSHAREDPAGES; i++) {
+    if(curproc->pages[i].shared_memory_id != -1 && curproc->pages[i].key != -1) {
+      close_shared_mem_wrapper(curproc->pages[i].virtual_address);
+    }
+  }  
+
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;

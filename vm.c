@@ -6,6 +6,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
@@ -31,7 +32,7 @@ seginit(void)
 
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
-// create any required page table pages.
+// c  
 static pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
@@ -383,6 +384,279 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     va = va0 + PGSIZE;
   }
   return 0;
+}
+
+struct shared_memory_page 
+{
+  uint key, size;
+  int shared_mem_id;
+  int shared_mem_num_proc;
+  void *physical_address[NUMSHAREDPAGES];
+  uint shared_mem_seg_size;
+};
+
+struct shared_memory_table
+{
+  struct spinlock lock;
+  struct shared_memory_page all_pages[NUMSHAREDPAGES];
+} shared_memory_table;
+
+int create_shared_memory(uint size, int index)
+{
+  acquire(&shared_memory_table.lock);
+  if (size <= 0)
+  {
+    release(&shared_memory_table.lock);
+    return -1;
+  }
+  int num_of_pages = (size / PGSIZE) + 1;
+  if (num_of_pages > NUMSHAREDPAGES)
+  {
+    release(&shared_memory_table.lock);
+    return -1;
+  }
+  for (int i = 0; i < num_of_pages; i++)
+  {
+    char *new_page = kalloc();
+    if (new_page == 0)
+    {
+      cprintf("create_share_memory: failed (out of memory)\n");
+      release(&shared_memory_table.lock);
+      return -1;
+    }
+    memset(new_page, 0, PGSIZE);
+    shared_memory_table.all_pages[index].physical_address[i] = (void *)V2P(new_page);
+  }
+  shared_memory_table.all_pages[index].size = num_of_pages;
+  shared_memory_table.all_pages[index].key = 0;
+  shared_memory_table.all_pages[index].shared_mem_seg_size = size;
+  shared_memory_table.all_pages[index].shared_mem_id = index;
+
+  release(&shared_memory_table.lock);
+  return index;
+}
+
+
+int get_least_virtual_address_idx(void *current_virtual_address, struct proc *process)
+{
+  void *least_virtual_address = (void *)(KERNBASE - 1);
+
+  int idx = -1;
+  for (int i = 0; i < NUMSHAREDPAGES; i++)
+  {
+    if (process->pages[i].key != -1 
+        && (uint)process->pages[i].virtual_address >= (uint)current_virtual_address
+        && (uint)least_virtual_address >= (uint)process->pages[i].virtual_address)
+    {
+      least_virtual_address = process->pages[i].virtual_address;
+      idx = i;
+    }
+  }
+  return idx;
+}
+
+int close_shared_mem(void *shmaddr)
+{
+  acquire(&shared_memory_table.lock);
+  struct proc *process = myproc();
+  void *virtual_address = (void *)0;
+  uint size;
+  int index, shared_memory_id;
+  for (int i = 0; i < NUMSHAREDPAGES; i++)
+  {
+    if (process->pages[i].key != -1 && process->pages[i].virtual_address == shmaddr)
+    {
+      virtual_address = process->pages[i].virtual_address;
+      index = i;
+      shared_memory_id = process->pages[i].shared_memory_id;
+      size = process->pages[index].size;
+      break;
+    }
+  }
+  if (virtual_address)
+  {
+    for (int i = 0; i < size; i++)
+    {
+      pte_t *pte = walkpgdir(process->pgdir, (void *)((uint)virtual_address + i * PGSIZE), 0);
+      if (pte == 0)
+      {
+        release(&shared_memory_table.lock);
+        return -1;
+      }
+      *pte = 0;
+    }
+    process->pages[index].shared_memory_id = -1;
+    process->pages[index].key = -1;
+    process->pages[index].size = 0;
+    process->pages[index].virtual_address = (void *)0;
+    if (shared_memory_table.all_pages[shared_memory_id].shared_mem_num_proc > 0)
+    {
+      shared_memory_table.all_pages[shared_memory_id].shared_mem_num_proc -= 1;
+    }
+    if (shared_memory_table.all_pages[shared_memory_id].shared_mem_num_proc == 0)
+    {
+      
+      for (int i = 0; i < shared_memory_table.all_pages[index].size; i++)
+      {
+        char *addr = (char *)P2V(shared_memory_table.all_pages[index].physical_address[i]);
+        kfree(addr);
+        shared_memory_table.all_pages[index].physical_address[i] = (void *)0;
+      }
+      shared_memory_table.all_pages[index].size = 0;
+      shared_memory_table.all_pages[index].key = shared_memory_table.all_pages[index].shared_mem_id = -1;
+      shared_memory_table.all_pages[index].shared_mem_num_proc = 0;
+      shared_memory_table.all_pages[index].shared_mem_seg_size = 0;
+      cprintf("Number of refrences: 0, shared memory is freed.\n");
+    }
+    release(&shared_memory_table.lock);
+    return 0;
+  }
+  else
+  {
+    release(&shared_memory_table.lock);
+    return -1;
+  }
+}
+
+void *
+open_shared_mem(int shared_meomory_id)
+{
+  if (shared_meomory_id < 0 || shared_meomory_id > 64)
+  {
+    return (void *)-1;
+  }
+  acquire(&shared_memory_table.lock);
+  int index = -1, idx;
+  void *virtual_address = (void *)HEAPLIMIT, *least_virtual_address;
+  struct proc *process = myproc();
+  index = shared_memory_table.all_pages[shared_meomory_id].shared_mem_id;
+  if (index == -1)
+  {
+    release(&shared_memory_table.lock);
+    index = create_shared_memory(2565, shared_meomory_id);
+    acquire(&shared_memory_table.lock);
+  }
+  if (index == -1)
+  {
+    release(&shared_memory_table.lock);
+    return (void *)-1;
+  }
+  for (int i = 0; i < NUMSHAREDPAGES; i++)
+  {
+    idx = get_least_virtual_address_idx(virtual_address, process);
+    if (idx != -1)
+    {
+      least_virtual_address = process->pages[idx].virtual_address;
+      if ((uint)virtual_address + shared_memory_table.all_pages[index].size * PGSIZE <= (uint)least_virtual_address)
+        break;
+      else
+        virtual_address = (void *)((uint)least_virtual_address + process->pages[idx].size * PGSIZE);
+    }
+    else
+      break;
+  }
+
+  if ((uint)virtual_address + shared_memory_table.all_pages[index].size * PGSIZE >= KERNBASE)
+  {
+    release(&shared_memory_table.lock);
+    return (void *)-1;
+  }
+  idx = -1;
+  for (int i = 0; i < NUMSHAREDPAGES; i++)
+  {
+    if (process->pages[i].key != -1 
+        && (uint)process->pages[i].virtual_address + process->pages[i].size * PGSIZE > (uint)virtual_address 
+        && (uint)virtual_address >= (uint)process->pages[i].virtual_address)
+    {
+      idx = i;
+      break;
+    }
+  }
+  if (idx != -1)
+  {
+    release(&shared_memory_table.lock);
+    return (void *)-1;
+  }
+  for (int k = 0; k < shared_memory_table.all_pages[index].size; k++)
+  {
+    if (mappages(process->pgdir, (void *)((uint)virtual_address + (k * PGSIZE)), PGSIZE, (uint)shared_memory_table.all_pages[index].physical_address[k], 06) < 0)
+    {
+      deallocuvm(process->pgdir, (uint)virtual_address, (uint)(virtual_address + shared_memory_table.all_pages[index].size));
+      release(&shared_memory_table.lock);
+      return (void *)-1;
+    }
+  }
+  idx = -1;
+  for (int i = 0; i < NUMSHAREDPAGES; i++)
+  {
+    if (process->pages[i].key == -1)
+    {
+      idx = i;
+      break;
+    }
+  }
+  if (idx != -1)
+  {
+    process->pages[idx].shared_memory_id = shared_meomory_id;
+    process->pages[idx].virtual_address = virtual_address;
+    process->pages[idx].key = shared_memory_table.all_pages[index].key;
+    process->pages[idx].size = shared_memory_table.all_pages[index].size;
+    shared_memory_table.all_pages[index].shared_mem_num_proc += 1;
+  }
+  else
+  {
+    release(&shared_memory_table.lock);
+    return (void *)-1;
+  }
+  release(&shared_memory_table.lock);
+  return virtual_address;
+}
+
+void shared_mem_init(void)
+{
+  initlock(&shared_memory_table.lock, "Shared Memory lock initial");
+  acquire(&shared_memory_table.lock);
+  for (int i = 0; i < NUMSHAREDPAGES; i++)
+  {
+    shared_memory_table.all_pages[i].key = shared_memory_table.all_pages[i].shared_mem_id = -1;
+    shared_memory_table.all_pages[i].size = 0;
+    shared_memory_table.all_pages[i].shared_mem_num_proc = 0;
+    shared_memory_table.all_pages[i].shared_mem_seg_size = 0;
+    for (int j = 0; j < NUMSHAREDPAGES; j++)
+    {
+      shared_memory_table.all_pages[i].physical_address[j] = (void *)0;
+    }
+  }
+  release(&shared_memory_table.lock);
+}
+
+int get_shared_mem_id_index(int shared_mem_id)
+{
+  if (shared_mem_id < 0 || shared_mem_id > 64)
+  {
+    return -1;
+  }
+  return shared_memory_table.all_pages[shared_mem_id].shared_mem_id;
+}
+
+void 
+map_pages_wrapper(struct proc *process, int shared_mem_index, int index)
+{
+  for (int i = 0; i < process->pages[index].size; i++)
+  {
+    uint virtual_address = (uint)process->pages[index].virtual_address;
+    if (mappages(process->pgdir, (void *)(virtual_address + (i * PGSIZE)), PGSIZE, (uint)shared_memory_table.all_pages[shared_mem_index].physical_address[i], 06) < 0)
+    {
+      deallocuvm(process->pgdir, virtual_address, (uint)(virtual_address + shared_memory_table.all_pages[shared_mem_index].size));
+      return;
+    }
+    shared_memory_table.all_pages[shared_mem_index].shared_mem_num_proc += 1;
+  }
+}
+
+void close_shared_mem_wrapper(void *addr)
+{
+  close_shared_mem(addr);
 }
 
 //PAGEBREAK!

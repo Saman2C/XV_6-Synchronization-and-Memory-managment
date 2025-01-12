@@ -22,4 +22,5 @@
 #define SYS_close  21
 #define SYS_sysCallCounter 22
 #define SYS_test_lock 23
-
+#define SYS_open_shared_mem 24
+#define SYS_close_shared_mem  25
